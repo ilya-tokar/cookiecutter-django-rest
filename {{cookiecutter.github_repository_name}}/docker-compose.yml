@@ -1,29 +1,30 @@
-version: '2'
-
+version: "3"
 services:
-  postgres:
-    image: postgres:11.6
-  web:
+  adminer:
+    image: adminer
     restart: always
+    ports:
+      - 8080:8080
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=test_application
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+  redis:
+    image: redis
+  celery_worker:
+    image: spelswork_web
+    command: celery -A spels_test_work_backend worker --concurrency=4
+  celery_beat:
+    image: spelswork_web
+    command: celery -A spels_test_work_backend beat
+  web:
     environment:
       - DJANGO_SECRET_KEY=local
-    image: web
-    build: ./
-    command: >
-      bash -c "python wait_for_postgres.py &&
-               ./manage.py migrate &&
-               ./manage.py runserver 0.0.0.0:8000"
+    build: .
+    command: python3 manage.py runserver
     volumes:
-      - ./:/code
+      - .:/code:Z
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
-  documentation:
-    restart: always
-    build: ./
-    command: "mkdocs serve"
-    volumes:
-      - ./:/code
-    ports:
-      - "8001:8001"
